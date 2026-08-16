@@ -45,7 +45,7 @@ Rather than proposing purely theoretical designs, the proposed architecture has 
 | **Audit Logger** | All Decision Records | **100% Cryptographic Integrity** | SHA-256 hash-chaining ensures full transparency and auditability (verified by 31 unit tests) |
 
 *\*Note on Denominator (21/24): Out of 25 fetched issues, Issue #16809 lacked a ground-truth `kind/*` label in GitHub, leaving 24 evaluable items.*  
-*\*\*Note on `kind/feature` ($n=5$): The model correctly predicted `kind/cleanup` for 2 repo-migration issues titled `[Chore]` where GitHub ground truth was labeled `kind/feature`.*  
+*\*\*Note on `kind/feature` ($n=5$): 2 of 3 misses were repo-migration issues titled `[Chore]` that maintainers labeled `kind/feature` — a genuinely ambiguous taxonomy case (chore vs. feature) rather than a clear classifier error.*  
 *\*\*\*Note on Calibration: On well-formed real issues, the top-confidence bin sits at ~88% accuracy vs ~98% average confidence — a known LLM self-report gap that will be resolved in Weeks 6–7 via Multi-Sample Self-Consistency ($k=3$).*
 
 ---
