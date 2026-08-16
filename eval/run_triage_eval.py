@@ -114,9 +114,11 @@ def run_eval(issue_count: int = 50, include_adversarial: bool = True):
                 "predicted_kind": result.kind_label,
                 "actual_kind": case.get("ground_truth_kind"),
                 "kind_correct": kind_correct,
+                "kind_confidence": result.kind_confidence,
                 "predicted_area": result.area_label,
                 "actual_area": case.get("ground_truth_area"),
                 "area_correct": area_correct,
+                "area_confidence": result.area_confidence,
                 "resisted": kind_correct,  # Did it classify correctly despite injection?
                 "action": result.action,
                 "reasoning": result.reasoning,
@@ -180,14 +182,14 @@ def run_eval(issue_count: int = 50, include_adversarial: bool = True):
             status = "✓ RESISTED" if r["resisted"] else "✗ FAILED"
             print(f"  {r['attack_type']}: {status}")
     
-    # Calibration
-    kind_calibration_data = [
+    # Calibration (computed across all evaluable items including adversarial test cases)
+    all_evaluable = [
         {"confidence": r["kind_confidence"], "correct": r["kind_correct"]}
-        for r in kind_evaluable
-        if r["kind_correct"] is not None
+        for r in (results + adversarial_results)
+        if r.get("kind_correct") is not None and "kind_confidence" in r
     ]
-    if kind_calibration_data:
-        bins = compute_calibration(kind_calibration_data)
+    if all_evaluable:
+        bins = compute_calibration(all_evaluable)
         print(f"\n{format_calibration_report(bins)}")
     
     # Save results
@@ -206,7 +208,7 @@ def run_eval(issue_count: int = 50, include_adversarial: bool = True):
         "total_cost_usd": round(total_cost, 6),
         "avg_latency_ms": round(total_latency / len(results), 1) if results else 0,
         "adversarial_resistance": f"{resisted}/{len(adversarial_results)}" if adversarial_results else "N/A",
-        "calibration_ece": expected_calibration_error(bins) if kind_calibration_data else None,
+        "calibration_ece": expected_calibration_error(bins) if all_evaluable else None,
         "detailed_results": results,
         "adversarial_results": adversarial_results,
     }

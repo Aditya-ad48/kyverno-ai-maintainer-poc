@@ -227,25 +227,28 @@ class TriageClassifier:
         parsed: ParsedIssue,
     ) -> float:
         """Derive a calibrated confidence score combining model certainty and structural signals."""
-        # 1. Base certainty from model clarity assessment
-        if clarity == "high":
-            base = max(raw_conf, 0.90)
-        elif clarity == "low":
-            base = min(raw_conf, 0.50)
-        else:
-            base = min(raw_conf, 0.75)
+        # 1. Start from model's self-reported certainty (without forcing a hard floor)
+        base = raw_conf
         
-        # 2. Structural heuristics: template usage and reproduction artifacts
+        # 2. Adjust based on clarity assessment
+        if clarity == "high":
+            base += 0.05
+        elif clarity == "low":
+            base -= 0.25
+        elif clarity == "medium":
+            base -= 0.05
+        
+        # 3. Structural heuristics: template usage and reproduction artifacts
         if parsed.uses_template and (parsed.has_yaml_blocks or parsed.has_error_logs):
             base += 0.05  # High-quality structured issue with logs/YAML
         elif not parsed.uses_template and not parsed.has_yaml_blocks and not parsed.has_error_logs:
             base -= 0.15  # Unstructured free-form issue penalty
         
-        # 3. Penalize if adversarial injection or conflicting directives were found
+        # 4. Penalize if adversarial injection or conflicting directives were found
         if has_injection:
             base -= 0.25
         
-        # 4. Cap if human review was explicitly requested
+        # 5. Cap if human review was explicitly requested
         if needs_review:
             base = min(base, 0.60)
         
