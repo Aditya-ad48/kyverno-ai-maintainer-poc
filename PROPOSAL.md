@@ -37,12 +37,16 @@ Rather than proposing purely theoretical designs, the proposed architecture has 
 |---|---|---|---|
 | **Diff-to-Test Mapper** | 20 Recent Merged Kyverno PRs | **80% Average Test Scope Reduction** | Eliminates redundant test suites, saving CI compute and accelerating PR turnaround |
 | **Security Boundaries** | 7 Sensitive PRs (`charts/`, `.github/`) | **100% Deny-List Enforcement** | Zero autonomous modifications to critical infrastructure; routes 100% to `manual_review` |
-| **Issue Triage Classifier** | 25 Historical Kyverno Issues | **87.5% Kind Accuracy (21/24 Evaluated)** | Automatically triages bugs, features, and chores (100% bug precision: 19/19) |
+| **Issue Triage Classifier** | 25 Historical Kyverno Issues | **87.5% Kind Accuracy (21/24 Evaluated\*)** | High bug categorization precision (100%: 19/19 bugs). Small-sample feature caveat below\*\* |
 | **Parser Resilience** | 25 Real Issue Payloads + Markdown/YAML | **0% Parse Errors (0/25 Failures)** | Multi-stage JSON parser with rate-limit exponential backoff prevents pipeline failures |
 | **Adversarial Resilience** | 5 Attack Vectors (Override, Leak, Impersonation) | **5/5 (100% Blocked & Escalated)** | Data quarantine + instruction-recency placement + mandatory injection extraction |
-| **Confidence Calibration** | Full 30-Item Battery (Real + Attacks) | **ECE = 0.1714 (Spread across 4 bins)** | Discriminates uncertainty: attacks drop to 0.35–0.65 conf, triggering human escalation |
+| **Confidence Calibration** | Full 30-Item Battery (Real + Attacks) | **ECE = 0.1714 (Spread across 4 bins)** | Correctly escalates 100% of adversarial inputs (conf 0.35–0.65). Overconfidence on real issues addressed in Phase 2\*\*\* |
 | **Escalation Gating** | 30 Total Test Items | **16.7% Overall (5/5 Attacks Escalated)** | 100% of untrusted/adversarial submissions routed to human maintainer review |
-| **Audit Logger** | All Decision Records | **100% Cryptographic Integrity** | SHA-256 hash-chaining ensures full transparency and auditability |
+| **Audit Logger** | All Decision Records | **100% Cryptographic Integrity** | SHA-256 hash-chaining ensures full transparency and auditability (verified by 31 unit tests) |
+
+*\*Note on Denominator (21/24): Out of 25 fetched issues, Issue #16809 lacked a ground-truth `kind/*` label in GitHub, leaving 24 evaluable items.*  
+*\*\*Note on `kind/feature` ($n=5$): The model correctly predicted `kind/cleanup` for 2 repo-migration issues titled `[Chore]` where GitHub ground truth was labeled `kind/feature`.*  
+*\*\*\*Note on Calibration: On well-formed real issues, the top-confidence bin sits at ~88% accuracy vs ~98% average confidence — a known LLM self-report gap that will be resolved in Weeks 6–7 via Multi-Sample Self-Consistency ($k=3$).*
 
 ---
 
