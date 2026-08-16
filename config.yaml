@@ -1,0 +1,51 @@
+# Kyverno AI Maintainer POC Configuration
+
+github:
+  repo_owner: "kyverno"
+  repo_name: "kyverno"
+  api_base: "https://api.github.com"
+
+llm:
+  provider_env: "LLM_PROVIDER"
+  api_key_env: "LLM_API_KEY"
+  model_env: "LLM_MODEL"
+  temperature: 0.1
+  max_tokens: 1024
+
+triage:
+  confidence_threshold: 0.75
+  escalation_threshold: 0.5
+  categories:
+    kind:
+      - "kind/bug"
+      - "kind/feature"
+      - "kind/question"
+      - "kind/cleanup"
+    area:
+      - "area/engine"
+      - "area/cli"
+      - "area/webhooks"
+      - "area/api"
+      - "area/documentation"
+      - "area/reports"
+      - "area/cleanup"
+      - "area/image-verify"
+      - "area/cel"
+      - "area/helm"
+
+test_mapper:
+  max_changed_files: 50
+  fallback_strategy: "run_all"
+
+rate_limits:
+  github_calls_per_minute: 30
+  llm_calls_per_minute: 20
+
+audit:
+  log_dir: "data/audit"
+  log_file: "decisions.jsonl"
+
+eval:
+  triage_issue_count: 50
+  mapper_pr_count: 20
+  results_dir: "eval/results"
