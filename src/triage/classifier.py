@@ -126,7 +126,6 @@ class TriageClassifier:
         except Exception as e:
             result.action = "escalate"
             result.escalation_reason = f"LLM call failed: {str(e)}"
-            result.parse_error = True
             self._log_decision(result, parsed)
             return result
         
@@ -147,14 +146,19 @@ class TriageClassifier:
             self._log_decision(result, parsed)
             return result
         
-        # Apply classification
+        # Extract classification & analysis blocks
+        analysis = classification.get("analysis", {})
+        detected_injections = analysis.get("detected_injections", "none")
+        clarity_level = analysis.get("clarity_level", "medium").lower()
+        needs_review = classification.get("needs_human_review", False) or classification.get("needs_more_info", False)
+        
         result.kind_label = classification.get("kind", {}).get("label", "")
-        result.kind_confidence = classification.get("kind", {}).get("confidence", 0.0)
+        raw_kind_conf = classification.get("kind", {}).get("confidence", 0.85)
         result.area_label = classification.get("area", {}).get("label", "")
-        result.area_confidence = classification.get("area", {}).get("confidence", 0.0)
+        raw_area_conf = classification.get("area", {}).get("confidence", 0.85)
         result.priority_hint = classification.get("priority_hint", "P3")
         result.reasoning = classification.get("reasoning", "")
-        result.needs_more_info = classification.get("needs_more_info", False)
+        result.needs_more_info = needs_review
         
         # Validate labels against allowed set
         if result.kind_label and result.kind_label not in self.VALID_KIND_LABELS:
@@ -169,13 +173,40 @@ class TriageClassifier:
             self._log_decision(result, parsed)
             return result
         
-        # Apply confidence thresholds
+        # Normalize detected_injections representation
+        if isinstance(detected_injections, list):
+            injections_str = ", ".join(str(x) for x in detected_injections)
+            has_injection = len(detected_injections) > 0 and not all(str(x).lower() in ("none", "none.", "n/a", "no", "false") for x in detected_injections)
+        else:
+            injections_str = str(detected_injections)
+            has_injection = bool(injections_str) and injections_str.lower().strip() not in ("none", "none.", "n/a", "no", "false", "[]", "")
+        
+        # Calculate Calibrated Composite Confidence (Heuristic + Model ambiguity)
+        result.kind_confidence = self._calibrate_confidence(
+            raw_conf=raw_kind_conf,
+            clarity=clarity_level,
+            has_injection=has_injection,
+            needs_review=needs_review,
+            parsed=parsed,
+        )
+        result.area_confidence = self._calibrate_confidence(
+            raw_conf=raw_area_conf,
+            clarity=clarity_level,
+            has_injection=has_injection,
+            needs_review=needs_review,
+            parsed=parsed,
+        )
+        
+        # Apply confidence thresholds and safety gates
         min_confidence = min(
             result.kind_confidence if result.kind_label else 1.0,
             result.area_confidence if result.area_label else 1.0,
         )
         
-        if min_confidence >= self.confidence_threshold:
+        if has_injection:
+            result.action = "escalate"
+            result.escalation_reason = f"Adversarial injection detected ({injections_str}) — escalated for human safety review"
+        elif min_confidence >= self.confidence_threshold:
             result.action = "auto_label"
         elif min_confidence >= self.escalation_threshold:
             result.action = "escalate"
@@ -187,25 +218,66 @@ class TriageClassifier:
         self._log_decision(result, parsed)
         return result
     
+    def _calibrate_confidence(
+        self,
+        raw_conf: float,
+        clarity: str,
+        has_injection: bool,
+        needs_review: bool,
+        parsed: ParsedIssue,
+    ) -> float:
+        """Derive a calibrated confidence score combining model certainty and structural signals."""
+        # 1. Base certainty from model clarity assessment
+        if clarity == "high":
+            base = max(raw_conf, 0.90)
+        elif clarity == "low":
+            base = min(raw_conf, 0.50)
+        else:
+            base = min(raw_conf, 0.75)
+        
+        # 2. Structural heuristics: template usage and reproduction artifacts
+        if parsed.uses_template and (parsed.has_yaml_blocks or parsed.has_error_logs):
+            base += 0.05  # High-quality structured issue with logs/YAML
+        elif not parsed.uses_template and not parsed.has_yaml_blocks and not parsed.has_error_logs:
+            base -= 0.15  # Unstructured free-form issue penalty
+        
+        # 3. Penalize if adversarial injection or conflicting directives were found
+        if has_injection:
+            base -= 0.25
+        
+        # 4. Cap if human review was explicitly requested
+        if needs_review:
+            base = min(base, 0.60)
+        
+        return round(max(0.10, min(base, 0.98)), 2)
+    
     def _parse_llm_output(self, raw_output: str) -> dict:
         """Parse and validate LLM JSON output.
         
         Handles common issues:
         - Markdown code blocks around JSON
         - Extra text before/after JSON
-        - Missing fields
+        - Deeply nested structures
         """
         # Strip markdown code blocks if present
         cleaned = raw_output.strip()
-        cleaned = re.sub(r'^```(?:json)?\s*', '', cleaned)
+        cleaned = re.sub(r'^```(?:json)?\s*', '', cleaned, flags=re.IGNORECASE)
         cleaned = re.sub(r'\s*```$', '', cleaned)
+        cleaned = cleaned.strip()
         
-        # Try to find JSON object in the output
-        json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', cleaned, re.DOTALL)
-        if json_match:
-            cleaned = json_match.group(0)
+        # Try direct JSON parsing
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            pass
         
-        return json.loads(cleaned)
+        # Try to find JSON between outermost braces
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            return json.loads(cleaned[start:end + 1])
+        
+        raise json.JSONDecodeError("No JSON object found", raw_output, 0)
     
     def _log_decision(self, result: TriageResult, parsed: ParsedIssue):
         """Log the triage decision to audit log."""

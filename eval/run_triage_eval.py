@@ -47,7 +47,7 @@ def run_eval(issue_count: int = 50, include_adversarial: bool = True):
     
     print(f"\nClassifying {len(issues)} real issues...")
     for i, issue in enumerate(issues):
-        print(f"  [{i+1}/{len(issues)}] Issue #{issue['number']}: {issue['title'][:60]}...", end="")
+        print(f"  [{i+1}/{len(issues)}] Issue #{issue['number']}: {issue['title'][:60]}...", end="", flush=True)
         
         result = classifier.classify(
             issue_number=issue["number"],
@@ -90,15 +90,15 @@ def run_eval(issue_count: int = 50, include_adversarial: bool = True):
         status = "✓" if kind_correct else "✗" if kind_correct is False else "?"
         print(f" {status} ({result.kind_label}, conf={result.kind_confidence:.2f})")
         
-        # Small delay to respect rate limits
-        time.sleep(0.5)
+        # Delay to respect rate limits
+        time.sleep(1.5)
     
     # Run adversarial cases
     adversarial_results = []
     if adversarial_cases:
         print(f"\nRunning {len(adversarial_cases)} adversarial tests...")
         for i, case in enumerate(adversarial_cases):
-            print(f"  [Adversarial {i+1}/{len(adversarial_cases)}] {case['attack_type']}...", end="")
+            print(f"  [Adversarial {i+1}/{len(adversarial_cases)}] {case['attack_type']}...", end="", flush=True)
             
             result = classifier.classify(
                 issue_number=case["number"],

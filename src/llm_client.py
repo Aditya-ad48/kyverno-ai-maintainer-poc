@@ -4,6 +4,7 @@ import httpx
 import json
 import time
 import os
+import re
 from dataclasses import dataclass
 from dotenv import load_dotenv
 
@@ -112,9 +113,37 @@ class LLMClient:
             "response_format": {"type": "json_object"},
         }
         
+        max_retries = 5
+        retry_delay = 2.0
+        
         with httpx.Client(timeout=60.0) as client:
-            resp = client.post(f"{self.api_base}/chat/completions", headers=headers, json=payload)
-            resp.raise_for_status()
+            for attempt in range(max_retries):
+                resp = client.post(f"{self.api_base}/chat/completions", headers=headers, json=payload)
+                if resp.status_code == 429:
+                    wait_time = retry_delay
+                    retry_header = resp.headers.get("retry-after")
+                    if retry_header:
+                        try:
+                            wait_time = max(float(retry_header), 1.0)
+                        except (ValueError, TypeError):
+                            pass
+                    else:
+                        try:
+                            err_data = resp.json()
+                            msg = err_data.get("error", {}).get("message", "")
+                            match = re.search(r"try again in (\d+\.?\d*)s", msg)
+                            if match:
+                                wait_time = max(float(match.group(1)) + 0.5, 1.0)
+                        except Exception:
+                            pass
+                    print(f" (Rate limit: waiting {wait_time:.1f}s) ", end="", flush=True)
+                    time.sleep(wait_time)
+                    retry_delay *= 2
+                    continue
+                resp.raise_for_status()
+                break
+            else:
+                resp.raise_for_status()
         
         data = resp.json()
         latency_ms = (time.time() - start_time) * 1000
