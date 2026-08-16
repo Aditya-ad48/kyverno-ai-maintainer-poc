@@ -21,7 +21,7 @@ To address these challenges safely, I propose building the **Kyverno AI Maintain
 To prove feasibility before the mentorship begins, I have developed and benchmarked a **fully functional, read-only Python 3.11+ prototype** (`kyverno-ai-maintainer-poc`) that demonstrates:
 - **80% Average CI Scope Reduction** across real Kyverno PRs using a deterministic diff-to-test mapper.
 - **100% Security Boundary Enforcement** on sensitive directories (`charts/`, `.github/workflows/`, `api/kyverno/v1/`).
-- **94.7% Issue Triage Accuracy** on real closed Kyverno issues with zero parse failures.
+- **87.5% Real-Issue Triage Accuracy (21/24 Evaluated)** on real closed Kyverno issues with zero parse failures.
 - **5/5 (100%) Prompt Injection Resistance** using data quarantine and instruction-recency placement.
 - **Tamper-Evident SHA-256 Audit Logging** with cryptographic hash-chaining.
 
@@ -76,7 +76,7 @@ The AI Maintainer Assistant is structured in three decoupled, auditable layers:
                                           ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                     3. Action, Gate & Audit Layer                       │
-│  - Confidence Evaluator (≥ 0.85 Auto-Suggest, < 0.85 Escalate to Human) │
+│  - Confidence Evaluator (≥ 0.75 Auto-Suggest, < 0.75 Escalate to Human) │
 │  - Maintainer Override & Global Kill-Switch (`hold` label / config file)│
 │  - Tamper-Evident SHA-256 Append-Only JSONL Audit Logger                │
 │  - Read-Only PR Comments & Draft Label Suggestions                      │
@@ -109,31 +109,16 @@ The AI Maintainer Assistant is structured in three decoupled, auditable layers:
 
 ## 4. 12-Week Implementation Plan
 
-```mermaid
-gantt
-    title 12-Week LFX Mentorship Project Plan
-    dateFormat  YYYY-MM-DD
-    section Phase 1: Ingestion & Mapper
-    Repo Scaffolding & CI Integration       :2026-06-01, 14d
-    AST-Based Go Test Dependency Graph      :2026-06-15, 21d
-    section Phase 2: Triage & Intelligence
-    Triage Classifier & Confidence Engine   :2026-07-06, 14d
-    Dependabot Validator & Flaky Triager    :2026-07-20, 14d
-    section Phase 3: Hardening & Release
-    Audit System, Kill Switch & Multi-Model :2026-08-03, 14d
-    Documentation, E2E Eval & Handoff       :2026-08-17, 14d
-```
-
 ### Detailed Milestone Breakdown
 
 | Weeks | Focus Area | Deliverables & Milestones | Acceptance Criteria |
 |---|---|---|---|
-| **Weeks 1–2** | **Foundation & Ingestion** | • Project scaffolding, GitHub Actions webhook dispatcher.<br>• Read-only GitHub App configuration with least-privilege permissions.<br>• Repository AST indexing pipeline. | Prototype deployed in test environment; webhooks ingest PR and issue events without write access. |
-| **Weeks 3–5** | **Diff-to-Test Scope Mapper** | • Full Go AST dependency graph generator parsing Kyverno package imports.<br>• Integration with Kyverno's `Makefile` and Chainsaw test runner.<br>• Fallback logic for unmapped files and monorepo bumps. | Achieves ≥ 75% test suite reduction on historical PRs; 100% detection of security-sensitive paths. |
-| **Weeks 6–7** | **Issue Triage & Labeling** | • Multi-stage triage classifier with prompt injection defense.<br>• Self-consistency sampling ($k=3$) and confidence calibration engine.<br>• Non-intrusive maintainer suggestion comments. | ≥ 90% kind accuracy on benchmark issue suite; < 0.05 ECE calibration; zero autonomous actions on ambiguous issues. |
-| **Weeks 8–9** | **Dependabot & Flaky Test Triager** | • Dependabot PR validation engine (verifying semver patch bumps + green CI).<br>• Flaky test analyzer (detecting transient test failures and correlating with open issues).<br>• Human-in-the-loop recommendation workflow. | Accurately flags safe patch bumps; distinguishes flaky tests from genuine PR regressions. |
-| **Weeks 10–11** | **Safety, Audit & Multi-Model** | • Cryptographic SHA-256 audit logging and tamper-verification CLI.<br>• Global kill-switch and `hold` label override handlers.<br>• Model-agnostic backend (Groq, OpenAI, Anthropic, Ollama/local). | Zero security bypasses; tamper verification CLI successfully detects any modified audit logs. |
-| **Weeks 12** | **Documentation, Eval & Handoff** | • `AGENTS.md` and `MAINTAINERS.md` documentation.<br>• Continuous evaluation harness running in Kyverno CI.<br>• Final presentation and mentorship handoff report. | Complete documentation merged into repository; evaluation harness running as a reproducible CI step. |
+| **Weeks 1–2** | **Phase 0: Repo Audit, Agent Docs & Ingestion** | • Comprehensive audit of current repository layout and monorepo/module boundary evaluation.<br>• Expand root `AGENTS.md` and add per-directory agent docs (`pkg/engine/`, `pkg/webhooks/`, `pkg/controllers/`, `test/conformance/`).<br>• Author and publish explicit **Safe Automation Boundaries** document (autonomous-safe vs. zero-auto-touch paths).<br>• Project scaffolding, GitHub Actions webhook dispatcher with read-only least-privilege token boundaries. | `AGENTS.md` and per-directory guides merged; safe automation boundaries published; webhooks ingest PR and issue events without write access. |
+| **Weeks 3–5** | **Phase 1: Diff-to-Test Scope Mapper** | • Full Go AST dependency graph generator parsing Kyverno package imports.<br>• Integration with Kyverno's `Makefile` and Chainsaw test runner.<br>• Fallback logic for unmapped files and monorepo bumps. | Achieves ≥ 75% test suite reduction on historical PRs; 100% detection of security-sensitive paths. |
+| **Weeks 6–7** | **Phase 2: Issue Triage & Labeling** | • Multi-stage triage classifier with prompt injection defense.<br>• Self-consistency sampling ($k=3$) and confidence calibration engine.<br>• Non-intrusive maintainer suggestion comments. | ≥ 85% kind accuracy on benchmark issue suite; < 0.10 ECE calibration; zero autonomous actions on ambiguous issues. |
+| **Weeks 8–9** | **Phase 3: Dependabot & Flaky Test Triager** | • Dependabot PR validation engine (verifying semver patch bumps + green CI).<br>• Flaky test analyzer (detecting transient test failures and correlating with open issues).<br>• Human-in-the-loop recommendation workflow. | Accurately flags safe patch bumps; distinguishes flaky tests from genuine PR regressions. |
+| **Weeks 10–11** | **Phase 4: Safety, Audit & Multi-Model** | • Cryptographic SHA-256 audit logging and tamper-verification CLI.<br>• Global kill-switch and `hold` label override handlers.<br>• Model-agnostic backend (Groq, OpenAI, Anthropic, Ollama/local). | Zero security bypasses; tamper verification CLI successfully detects any modified audit logs. |
+| **Weeks 12** | **Phase 5: Documentation, Eval & Handoff** | • Maintainer onboarding guide & evaluation playbook.<br>• Continuous evaluation harness running in Kyverno CI.<br>• Final presentation and mentorship handoff report. | Complete documentation merged into repository; evaluation harness running as a reproducible CI step. |
 
 ---
 
@@ -142,7 +127,7 @@ gantt
 | Edge Case / Risk | Potential Failure Mode | Built-in Mitigation in Design |
 |---|---|---|
 | **Prompt Injection** | User submits issue containing commands to alter labels or leak prompt. | Delimited quarantine tags (`<untrusted_issue_data>`), instruction-recency placement, explicit analysis step, and hard safety escalation if injections are detected. (Tested 5/5). |
-| **False-Positive Actions** | Bot applies incorrect label or suggests unsafe test reduction. | Low-confidence escalation gate (< 0.85); all actions are reversible; zero auto-merges without human maintainer sign-off. |
+| **False-Positive Actions** | Bot applies incorrect label or suggests unsafe test reduction. | Low-confidence escalation gate (< 0.75); all actions are reversible; zero auto-merges without human maintainer sign-off. |
 | **Flaky Test Cascade** | Flaky Chainsaw test triggers repeated CI reruns and rate limit starvation. | Token-bucket rate limiter with per-minute and per-day caps; backoff retries; maximum 1 automated retry before escalating to human. |
 | **Stale Test Mapping** | Codebase refactoring invalidates package-to-test mapping. | Test mapper dynamically rebuilds dependencies from Go AST at HEAD commit; safe fallback to `full_suite` if any path is unmapped. |
 | **API Rate Limits / Outages** | GitHub API or LLM provider hits 429 rate limit mid-batch. | Built-in exponential backoff with dynamic `retry-after` header parsing; non-blocking asynchronous queue; local fallback model option. |
