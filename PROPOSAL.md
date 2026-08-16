@@ -68,7 +68,7 @@ The AI Maintainer Assistant is structured in three decoupled, auditable layers:
 │  │   Deterministic Rule Engine   │     │  Hardened LLM Reasoning Node │ │
 │  │  - Diff-to-Test Path Mapping  │     │  - Data Quarantine Wrapper   │ │
 │  │  - Zero-Auto-Touch Deny-List  │     │  - Multi-Stage JSON Parser   │ │
-│  │  - Static AST Dependency Map  │     │  - Calibrated Confidence     │ │
+│  │  - Path & Package-Map Engine  │     │  - Calibrated Confidence     │ │
 │  └───────────────┬───────────────┘     └──────────────┬───────────────┘ │
 │                  └──────────────────────┬─────────────┘                 │
 └─────────────────────────────────────────┼───────────────────────────────┘
@@ -86,7 +86,7 @@ The AI Maintainer Assistant is structured in three decoupled, auditable layers:
 ### Core Components
 
 #### A. Deterministic Diff-to-Test Scope Mapper
-- Analyzes changed file paths in pull requests using Go package dependency heuristics.
+- Analyzes changed file paths in pull requests using deterministic package prefix rules and Go dependency heuristics.
 - Maps changes directly to relevant unit test packages (`pkg/engine/...`, `pkg/webhooks/...`) and conformance tests (`test/conformance/chainsaw/...`).
 - **Security Boundary:** Explicit deny-list automatically flags any PR touching `api/kyverno/v1/`, `pkg/cosign/`, `.github/workflows/`, or `charts/` for mandatory `manual_review`.
 
@@ -114,7 +114,7 @@ The AI Maintainer Assistant is structured in three decoupled, auditable layers:
 | Weeks | Focus Area | Deliverables & Milestones | Acceptance Criteria |
 |---|---|---|---|
 | **Weeks 1–2** | **Phase 0: Repo Audit, Agent Docs & Ingestion** | • Comprehensive audit of repository structure and monorepo/module boundary evaluation.<br>• Expand root `AGENTS.md` and add per-directory agent docs (`pkg/engine/`, `pkg/webhooks/`, `pkg/controllers/`, `test/conformance/`).<br>• Author and publish explicit **Safe Automation Boundaries** document (autonomous-safe vs. zero-auto-touch paths).<br>• Machine-readable task index (`TASKS.md` / `agents.json`) for automated task routing.<br>• Project scaffolding, GitHub Actions webhook dispatcher with read-only least-privilege token boundaries. | `AGENTS.md`, per-directory guides, and task index merged; safe automation boundaries published; webhooks ingest PR and issue events without write access. |
-| **Weeks 3–5** | **Phase 1: Diff-to-Test Scope Mapper** | • Full Go AST dependency graph generator parsing Kyverno package imports.<br>• Integration with Kyverno's `Makefile` and Chainsaw test runner.<br>• Fallback logic for unmapped files and monorepo bumps (preserving 100% test recall). | Achieves ≥ 75% test suite reduction on historical PRs; 100% detection of security-sensitive paths; zero unmapped regressions. |
+| **Weeks 3–5** | **Phase 1: Native Go AST & Test Scope Mapper** | • Lightweight Go AST helper binary (`go/parser`, `go/ast`) invoked by Python orchestrator to parse fine-grained package/symbol import graphs.<br>• Integration with Kyverno's `Makefile` and Chainsaw test runner.<br>• Deterministic fallback logic for unmapped files and monorepo bumps (preserving 100% test recall). | Achieves ≥ 75% test suite reduction on historical PRs; 100% detection of security-sensitive paths; zero unmapped regressions. |
 | **Weeks 6–7** | **Phase 2: Issue Triage & Labeling** | • Multi-stage triage classifier with prompt injection defense.<br>• Self-consistency sampling ($k=3$) and confidence calibration engine.<br>• Non-intrusive maintainer suggestion comments. | ≥ 85% kind accuracy on benchmark issue suite; < 0.10 ECE calibration; zero autonomous actions on ambiguous issues. |
 | **Weeks 8–9** | **Phase 3: PR Hygiene & Flaky Triager** | • PR hygiene automation (stale PR detection, merge-conflict flagging, clean rebase verification).<br>• Dependabot PR validation engine (verifying semver patch bumps + green CI).<br>• Flaky test analyzer (detecting transient test failures and correlating with open issues).<br>• Human-in-the-loop recommendation workflow. | Accurately flags safe patch bumps; distinguishes flaky tests from genuine PR regressions; automates stale PR hygiene. |
 | **Weeks 10–11** | **Phase 4: Safety, Audit & Multi-Model** | • Cryptographic SHA-256 audit logging and tamper-verification CLI.<br>• Global kill-switch and `hold` label override handlers.<br>• Model-agnostic backend (Groq, OpenAI, Anthropic, Ollama/local). | Zero security bypasses; tamper verification CLI successfully detects any modified audit logs. |
@@ -134,7 +134,7 @@ The AI Maintainer Assistant is structured in three decoupled, auditable layers:
 | **Prompt Injection** | User submits issue containing commands to alter labels or leak prompt. | Delimited quarantine tags (`<untrusted_issue_data>`), instruction-recency placement, explicit analysis step, and hard safety escalation if injections are detected. (Tested 5/5). |
 | **False-Positive Actions** | Bot applies incorrect label or suggests unsafe test reduction. | Low-confidence escalation gate (< 0.75); all actions are reversible; zero auto-merges without human maintainer sign-off. |
 | **Flaky Test Cascade** | Flaky Chainsaw test triggers repeated CI reruns and rate limit starvation. | Token-bucket rate limiter with per-minute and per-day caps; backoff retries; maximum 1 automated retry before escalating to human. |
-| **Stale Test Mapping** | Codebase refactoring invalidates package-to-test mapping. | Test mapper dynamically rebuilds dependencies from Go AST at HEAD commit; safe fallback to `full_suite` if any path is unmapped. |
+| **Stale Test Mapping** | Codebase refactoring invalidates package-to-test mapping. | Dependency graph dynamically updates from repository structure and Go AST at HEAD commit; safe fallback to `full_suite` if any path is unmapped. |
 | **API Rate Limits / Outages** | GitHub API or LLM provider hits 429 rate limit mid-batch. | Built-in exponential backoff with dynamic `retry-after` header parsing; non-blocking asynchronous queue; local fallback model option. |
 | **Model Deprecation / Drift** | Upstream LLM changes behavior, reducing classification accuracy. | Reproducible evaluation harness with versioned ground-truth datasets; model version pinned in audit logs. |
 
@@ -143,7 +143,7 @@ The AI Maintainer Assistant is structured in three decoupled, auditable layers:
 ## 6. Relevant Background & Experience
 
 - **Kubernetes & Cloud Native:** Experienced with Kubernetes architectures, CRDs, admission controllers, and policy engines. Familiar with Kyverno's policy structure (Validate, Mutate, Generate, VerifyImages, Cleanup).
-- **Go & Python Development:** Strong background in Go (AST parsing, test harnesses) and Python (modern asynchronous pipelines, CLI tooling, testing frameworks).
+- **Go & Python Development:** Strong background in Go (building CLI tools, working with `go/parser` and `go/ast`) and Python (asynchronous event loops, structured LLM pipelines, test suites). Well-suited to execute the hybrid Python orchestration + Go AST helper architecture.
 - **LLM Systems & Security:** Hands-on experience building structured LLM applications, prompt injection defense, model calibration, and audit logging.
 - **Open Source Commitment:** Enthusiastic about contributing to the CNCF ecosystem and actively collaborating with Kyverno maintainers throughout and beyond the mentorship period.
 
