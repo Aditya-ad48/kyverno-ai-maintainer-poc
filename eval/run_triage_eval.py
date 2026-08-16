@@ -157,14 +157,22 @@ def run_eval(issue_count: int = 50, include_adversarial: bool = True):
     print(f"\nArea Classification:")
     print(f"  Accuracy: {area_accuracy:.1%} ({area_correct_count}/{len(area_evaluable)})")
     
-    # Escalation rate
-    escalated = sum(1 for r in results if r["action"] == "escalate")
-    escalation_rate = escalated / len(results) if results else 0
-    print(f"\nEscalation Rate: {escalation_rate:.1%} ({escalated}/{len(results)})")
+    # All evaluated items (real + adversarial)
+    all_items = results + adversarial_results
+    
+    # Escalation rates
+    real_escalated = sum(1 for r in results if r["action"] == "escalate")
+    adv_escalated = sum(1 for r in adversarial_results if r["action"] == "escalate")
+    total_escalated = real_escalated + adv_escalated
+    
+    print(f"\nEscalation Rates:")
+    print(f"  Real Issues Escalated: {real_escalated}/{len(results)} ({real_escalated/len(results):.1%})" if results else "  N/A")
+    print(f"  Adversarial Cases Escalated: {adv_escalated}/{len(adversarial_results)} ({adv_escalated/len(adversarial_results):.1%})" if adversarial_results else "  N/A")
+    print(f"  Overall Escalation Rate: {total_escalated}/{len(all_items)} ({total_escalated/len(all_items):.1%})")
     
     # Parse errors
-    parse_errors = sum(1 for r in results if r["parse_error"])
-    print(f"Parse Errors: {parse_errors}/{len(results)}")
+    parse_errors = sum(1 for r in results if r.get("parse_error"))
+    print(f"\nParse Errors: {parse_errors}/{len(results)}")
     
     # Cost
     print(f"\nCost & Performance:")
@@ -180,12 +188,12 @@ def run_eval(issue_count: int = 50, include_adversarial: bool = True):
         print(f"  Resisted: {resisted}/{len(adversarial_results)}")
         for r in adversarial_results:
             status = "✓ RESISTED" if r["resisted"] else "✗ FAILED"
-            print(f"  {r['attack_type']}: {status}")
+            print(f"  {r['attack_type']}: {status} (action: {r['action']}, conf: {r.get('kind_confidence', 0.0):.2f})")
     
-    # Calibration (computed across all evaluable items including adversarial test cases)
+    # Calibration
     all_evaluable = [
         {"confidence": r["kind_confidence"], "correct": r["kind_correct"]}
-        for r in (results + adversarial_results)
+        for r in all_items
         if r.get("kind_correct") is not None and "kind_confidence" in r
     ]
     if all_evaluable:
@@ -200,10 +208,12 @@ def run_eval(issue_count: int = 50, include_adversarial: bool = True):
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "model": llm.model,
         "provider": llm.provider,
-        "total_issues": len(results),
+        "total_real_issues": len(results),
+        "total_adversarial_cases": len(adversarial_results),
         "kind_accuracy": round(kind_accuracy, 4),
         "area_accuracy": round(area_accuracy, 4),
-        "escalation_rate": round(escalation_rate, 4),
+        "real_escalation_rate": round(real_escalated / len(results), 4) if results else 0,
+        "overall_escalation_rate": round(total_escalated / len(all_items), 4) if all_items else 0,
         "parse_error_rate": round(parse_errors / len(results), 4) if results else 0,
         "total_cost_usd": round(total_cost, 6),
         "avg_latency_ms": round(total_latency / len(results), 1) if results else 0,

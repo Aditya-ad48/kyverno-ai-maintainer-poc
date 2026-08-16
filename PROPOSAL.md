@@ -31,16 +31,17 @@ To prove feasibility before the mentorship begins, I have developed and benchmar
 
 Rather than proposing purely theoretical designs, the proposed architecture has been implemented, tested (`31/31 unit tests passing`), and benchmarked on real historical data from `kyverno/kyverno`.
 
-### Key Benchmark Metrics
+### Key Benchmark Metrics (Reproducible Run: `temperature=0.0`, `seed=42`)
 
 | Module | Benchmark Dataset | Measured Metric | Maintainer Impact |
 |---|---|---|---|
 | **Diff-to-Test Mapper** | 20 Recent Merged Kyverno PRs | **80% Average Test Scope Reduction** | Eliminates redundant test suites, saving CI compute and accelerating PR turnaround |
 | **Security Boundaries** | 7 Sensitive PRs (`charts/`, `.github/`) | **100% Deny-List Enforcement** | Zero autonomous modifications to critical infrastructure; routes 100% to `manual_review` |
-| **Issue Triage Classifier** | Historical Kyverno Issues | **94.7% Kind Accuracy (18/19 Evaluated)** | Automatically triages bugs, features, and questions to appropriate maintainer queues |
-| **Parser Resilience** | Real Issue Payloads + Markdown/YAML | **0% Parse Errors (0/20 Failures)** | Multi-stage JSON parser with rate-limit exponential backoff prevents pipeline failures |
-| **Adversarial Resilience** | 5 Attack Vectors (Override, Leak, Impersonation) | **5/5 (100% Blocked & Resisted)** | Hardened schema and data quarantine prevent prompt injection hijacking |
-| **Confidence Calibration** | Full Test Battery | **ECE = 0.1234 (Escalation Active)** | Accurately discriminates uncertainty, routing ambiguous items to humans |
+| **Issue Triage Classifier** | 25 Historical Kyverno Issues | **87.5% Kind Accuracy (21/24 Evaluated)** | Automatically triages bugs, features, and chores (100% bug precision: 19/19) |
+| **Parser Resilience** | 25 Real Issue Payloads + Markdown/YAML | **0% Parse Errors (0/25 Failures)** | Multi-stage JSON parser with rate-limit exponential backoff prevents pipeline failures |
+| **Adversarial Resilience** | 5 Attack Vectors (Override, Leak, Impersonation) | **5/5 (100% Blocked & Escalated)** | Data quarantine + instruction-recency placement + mandatory injection extraction |
+| **Confidence Calibration** | Full 30-Item Battery (Real + Attacks) | **ECE = 0.1714 (Spread across 4 bins)** | Discriminates uncertainty: attacks drop to 0.35–0.65 conf, triggering human escalation |
+| **Escalation Gating** | 30 Total Test Items | **16.7% Overall (5/5 Attacks Escalated)** | 100% of untrusted/adversarial submissions routed to human maintainer review |
 | **Audit Logger** | All Decision Records | **100% Cryptographic Integrity** | SHA-256 hash-chaining ensures full transparency and auditability |
 
 ---

@@ -59,14 +59,16 @@ class LLMClient:
         provider: str | None = None,
         api_key: str | None = None,
         model: str | None = None,
-        temperature: float = 0.1,
+        temperature: float = 0.0,
         max_tokens: int = 1024,
+        seed: int = 42,
     ):
         self.provider = provider or os.getenv("LLM_PROVIDER", "groq")
         self.api_key = api_key or os.getenv("LLM_API_KEY", "")
         self.model = model or os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
         self.temperature = temperature
         self.max_tokens = max_tokens
+        self.seed = seed
         
         if not self.api_key:
             raise ValueError(
@@ -110,6 +112,7 @@ class LLMClient:
             ],
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
+            "seed": self.seed,
             "response_format": {"type": "json_object"},
         }
         
