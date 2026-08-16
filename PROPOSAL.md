@@ -122,7 +122,7 @@ The AI Maintainer Assistant is structured in three decoupled, auditable layers:
 
 > [!NOTE]
 > **Scope Note & Progressive Automation Roadmap:**
-> - **Fast-Follows & Stretch Goals:** The automated `codegen-all-code` / `verify-codegen` gate for `api/` changes, documentation-drift detection, and KinD-based automated reproduction environments are prioritized as Phase 3 fast-follows building directly upon the AST dependency graph; the Slack / GitHub Discussions Q&A assistant remains an explicit Phase 4 stretch goal as labeled in Kyverno Issue #16665.
+> - **Fast-Follows & Stretch Goals:** The automated `codegen-all-code` / `verify-codegen` gate for `api/` changes and documentation-drift detection are Phase 3 fast-follows building on the AST dependency graph; KinD-based automated issue reproduction is a Phase 3 fast-follow building on the triage classifier's extracted issue context; the Slack / GitHub Discussions Q&A assistant remains an explicit Phase 4 stretch goal as labeled in Kyverno Issue #16665.
 > - **Graduated Write Permissions:** All automated actions operate strictly in recommend-only mode through Week 12; progressive write-scoped automation (e.g., auto-merging verified green patch bumps) represents a graduated Phase 2 extension requiring explicit maintainer sign-off.
 
 ---
