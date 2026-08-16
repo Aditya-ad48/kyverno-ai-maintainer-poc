@@ -19,7 +19,7 @@ Kyverno is the cloud-native policy engine for Kubernetes, managing validation, m
 To address these challenges safely, I propose building the **Kyverno AI Maintainer Assistant**: a modular, security-hardened system that automates routine maintainer tasks while enforcing a strict **human-in-the-loop, least-privilege boundary**. 
 
 To prove feasibility before the mentorship begins, I have developed and benchmarked a **fully functional, read-only Python 3.11+ prototype** (`kyverno-ai-maintainer-poc`) that demonstrates:
-- **80% Average CI Scope Reduction** across real Kyverno PRs using a deterministic diff-to-test mapper.
+- **80% Average CI Scope Reduction with 100% Test Recall** across real Kyverno PRs, featuring deterministic fallback to full test suites on any unmapped or sensitive paths to eliminate false-negative omissions by design.
 - **100% Security Boundary Enforcement** on sensitive directories (`charts/`, `.github/workflows/`, `api/kyverno/v1/`).
 - **87.5% Real-Issue Triage Accuracy (21/24 Evaluated)** on real closed Kyverno issues with zero parse failures.
 - **5/5 (100%) Prompt Injection Resistance** using data quarantine and instruction-recency placement.
@@ -35,7 +35,7 @@ Rather than proposing purely theoretical designs, the proposed architecture has 
 
 | Module | Benchmark Dataset | Measured Metric | Maintainer Impact |
 |---|---|---|---|
-| **Diff-to-Test Mapper** | 20 Recent Merged Kyverno PRs | **80% Average Test Scope Reduction** | Eliminates redundant test suites, saving CI compute and accelerating PR turnaround |
+| **Diff-to-Test Mapper** | 20 Recent Merged Kyverno PRs | **80% Avg Scope Reduction (100% Test Recall)** | Eliminates redundant test suites with 100% full-suite fallback on unmapped/sensitive paths — zero false negatives by design |
 | **Security Boundaries** | 7 Sensitive PRs (`charts/`, `.github/`) | **100% Deny-List Enforcement** | Zero autonomous modifications to critical infrastructure; routes 100% to `manual_review` |
 | **Issue Triage Classifier** | 25 Historical Kyverno Issues | **87.5% Kind Accuracy (21/24 Evaluated\*)** | High bug categorization precision (100%: 19/19 bugs). Small-sample feature caveat below\*\* |
 | **Parser Resilience** | 25 Real Issue Payloads + Markdown/YAML | **0% Parse Errors (0/25 Failures)** | Multi-stage JSON parser with rate-limit exponential backoff prevents pipeline failures |
@@ -113,15 +113,17 @@ The AI Maintainer Assistant is structured in three decoupled, auditable layers:
 
 | Weeks | Focus Area | Deliverables & Milestones | Acceptance Criteria |
 |---|---|---|---|
-| **Weeks 1–2** | **Phase 0: Repo Audit, Agent Docs & Ingestion** | • Comprehensive audit of current repository layout and monorepo/module boundary evaluation.<br>• Expand root `AGENTS.md` and add per-directory agent docs (`pkg/engine/`, `pkg/webhooks/`, `pkg/controllers/`, `test/conformance/`).<br>• Author and publish explicit **Safe Automation Boundaries** document (autonomous-safe vs. zero-auto-touch paths).<br>• Project scaffolding, GitHub Actions webhook dispatcher with read-only least-privilege token boundaries. | `AGENTS.md` and per-directory guides merged; safe automation boundaries published; webhooks ingest PR and issue events without write access. |
-| **Weeks 3–5** | **Phase 1: Diff-to-Test Scope Mapper** | • Full Go AST dependency graph generator parsing Kyverno package imports.<br>• Integration with Kyverno's `Makefile` and Chainsaw test runner.<br>• Fallback logic for unmapped files and monorepo bumps. | Achieves ≥ 75% test suite reduction on historical PRs; 100% detection of security-sensitive paths. |
+| **Weeks 1–2** | **Phase 0: Repo Audit, Agent Docs & Ingestion** | • Comprehensive audit of repository structure and monorepo/module boundary evaluation.<br>• Expand root `AGENTS.md` and add per-directory agent docs (`pkg/engine/`, `pkg/webhooks/`, `pkg/controllers/`, `test/conformance/`).<br>• Author and publish explicit **Safe Automation Boundaries** document (autonomous-safe vs. zero-auto-touch paths).<br>• Machine-readable task index (`TASKS.md` / `agents.json`) for automated task routing.<br>• Project scaffolding, GitHub Actions webhook dispatcher with read-only least-privilege token boundaries. | `AGENTS.md`, per-directory guides, and task index merged; safe automation boundaries published; webhooks ingest PR and issue events without write access. |
+| **Weeks 3–5** | **Phase 1: Diff-to-Test Scope Mapper** | • Full Go AST dependency graph generator parsing Kyverno package imports.<br>• Integration with Kyverno's `Makefile` and Chainsaw test runner.<br>• Fallback logic for unmapped files and monorepo bumps (preserving 100% test recall). | Achieves ≥ 75% test suite reduction on historical PRs; 100% detection of security-sensitive paths; zero unmapped regressions. |
 | **Weeks 6–7** | **Phase 2: Issue Triage & Labeling** | • Multi-stage triage classifier with prompt injection defense.<br>• Self-consistency sampling ($k=3$) and confidence calibration engine.<br>• Non-intrusive maintainer suggestion comments. | ≥ 85% kind accuracy on benchmark issue suite; < 0.10 ECE calibration; zero autonomous actions on ambiguous issues. |
-| **Weeks 8–9** | **Phase 3: Dependabot & Flaky Test Triager** | • Dependabot PR validation engine (verifying semver patch bumps + green CI).<br>• Flaky test analyzer (detecting transient test failures and correlating with open issues).<br>• Human-in-the-loop recommendation workflow. | Accurately flags safe patch bumps; distinguishes flaky tests from genuine PR regressions. |
+| **Weeks 8–9** | **Phase 3: PR Hygiene & Flaky Triager** | • PR hygiene automation (stale PR detection, merge-conflict flagging, clean rebase verification).<br>• Dependabot PR validation engine (verifying semver patch bumps + green CI).<br>• Flaky test analyzer (detecting transient test failures and correlating with open issues).<br>• Human-in-the-loop recommendation workflow. | Accurately flags safe patch bumps; distinguishes flaky tests from genuine PR regressions; automates stale PR hygiene. |
 | **Weeks 10–11** | **Phase 4: Safety, Audit & Multi-Model** | • Cryptographic SHA-256 audit logging and tamper-verification CLI.<br>• Global kill-switch and `hold` label override handlers.<br>• Model-agnostic backend (Groq, OpenAI, Anthropic, Ollama/local). | Zero security bypasses; tamper verification CLI successfully detects any modified audit logs. |
 | **Weeks 12** | **Phase 5: Documentation, Eval & Handoff** | • Maintainer onboarding guide & evaluation playbook.<br>• Continuous evaluation harness running in Kyverno CI.<br>• Final presentation and mentorship handoff report. | Complete documentation merged into repository; evaluation harness running as a reproducible CI step. |
 
 > [!NOTE]
-> **Scope Note & Roadmap Alignment:** The automated `codegen-all-code` / `verify-codegen` gate for `api/` changes and documentation-drift detection are prioritized as fast-follow enhancements building directly upon the Phase 1 AST dependency graph; the Slack / GitHub Discussions Q&A assistant remains an explicit Phase 4 stretch goal as labeled in Kyverno Issue #16665.
+> **Scope Note & Progressive Automation Roadmap:**
+> - **Fast-Follows & Stretch Goals:** The automated `codegen-all-code` / `verify-codegen` gate for `api/` changes, documentation-drift detection, and KinD-based automated reproduction environments are prioritized as Phase 3 fast-follows building directly upon the AST dependency graph; the Slack / GitHub Discussions Q&A assistant remains an explicit Phase 4 stretch goal as labeled in Kyverno Issue #16665.
+> - **Graduated Write Permissions:** All automated actions operate strictly in recommend-only mode through Week 12; progressive write-scoped automation (e.g., auto-merging verified green patch bumps) represents a graduated Phase 2 extension requiring explicit maintainer sign-off.
 
 ---
 
