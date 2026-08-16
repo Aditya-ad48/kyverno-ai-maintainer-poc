@@ -120,6 +120,9 @@ The AI Maintainer Assistant is structured in three decoupled, auditable layers:
 | **Weeks 10–11** | **Phase 4: Safety, Audit & Multi-Model** | • Cryptographic SHA-256 audit logging and tamper-verification CLI.<br>• Global kill-switch and `hold` label override handlers.<br>• Model-agnostic backend (Groq, OpenAI, Anthropic, Ollama/local). | Zero security bypasses; tamper verification CLI successfully detects any modified audit logs. |
 | **Weeks 12** | **Phase 5: Documentation, Eval & Handoff** | • Maintainer onboarding guide & evaluation playbook.<br>• Continuous evaluation harness running in Kyverno CI.<br>• Final presentation and mentorship handoff report. | Complete documentation merged into repository; evaluation harness running as a reproducible CI step. |
 
+> [!NOTE]
+> **Scope Note & Roadmap Alignment:** The automated `codegen-all-code` / `verify-codegen` gate for `api/` changes and documentation-drift detection are prioritized as fast-follow enhancements building directly upon the Phase 1 AST dependency graph; the Slack / GitHub Discussions Q&A assistant remains an explicit Phase 4 stretch goal as labeled in Kyverno Issue #16665.
+
 ---
 
 ## 5. Edge Case Handling & Risk Mitigation
