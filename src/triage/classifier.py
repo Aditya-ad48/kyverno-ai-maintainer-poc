@@ -124,6 +124,7 @@ class TriageClassifier:
         try:
             llm_response = self.llm.chat(system_prompt, user_prompt)
         except Exception as e:
+            print(f"\n  ⚠️  LLM ERROR: {str(e)}")
             result.action = "escalate"
             result.escalation_reason = f"LLM call failed: {str(e)}"
             self._log_decision(result, parsed)

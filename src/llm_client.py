@@ -60,12 +60,12 @@ class LLMClient:
         api_key: str | None = None,
         model: str | None = None,
         temperature: float = 0.0,
-        max_tokens: int = 1024,
+        max_tokens: int = 4096,
         seed: int = 42,
     ):
         self.provider = provider or os.getenv("LLM_PROVIDER", "groq")
         self.api_key = api_key or os.getenv("LLM_API_KEY", "")
-        self.model = model or os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
+        self.model = model or os.getenv("LLM_MODEL", "qwen/qwen3.6-27b")
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.seed = seed
@@ -113,13 +113,12 @@ class LLMClient:
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
             "seed": self.seed,
-            "response_format": {"type": "json_object"},
         }
         
         max_retries = 5
         retry_delay = 2.0
         
-        with httpx.Client(timeout=60.0) as client:
+        with httpx.Client(timeout=120.0) as client:
             for attempt in range(max_retries):
                 resp = client.post(f"{self.api_base}/chat/completions", headers=headers, json=payload)
                 if resp.status_code == 429:
@@ -155,8 +154,13 @@ class LLMClient:
         input_tokens = usage.get("prompt_tokens", 0)
         output_tokens = usage.get("completion_tokens", 0)
         
+        raw_content = data["choices"][0]["message"]["content"] or ""
+        
+        # Strip <think>...</think> blocks from reasoning models (e.g. Qwen 3.6)
+        content = re.sub(r'<think>.*?</think>', '', raw_content, flags=re.DOTALL).strip()
+        
         return LLMResponse(
-            content=data["choices"][0]["message"]["content"],
+            content=content,
             model=data.get("model", self.model),
             provider=self.provider,
             input_tokens=input_tokens,
